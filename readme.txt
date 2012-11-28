@@ -6,7 +6,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: commentpress, buddypress, groups, blogs, groupblogs, content, comments, commenting, debate, collaboration
 Requires at least: 3.3
 Tested up to: 3.4.2
-Stable tag: 3.4.2
+Stable tag: 3.4.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,8 +25,6 @@ Annotate, gloss, workshop, debate: with CommentPress Core you can do all of thes
 **Please note:** this plugin comes bundled with the official CommentPress Default Theme which will be auto-activated when the plugin is activated. If you are upgrading from a previous version of CommentPress, please follow the instructions in the Installation section before doing so.
 
 **For sites hosted in the European Union, please note:** CommentPress makes use of cookies, but for presentational purposes only. If you intend to use CommentPress on a public site, you may need to inform visitors of this.
-
-The name has been changed from CommentPress to CommentPress Core for two reasons: because it serves as the basis for extending it for your purposes and also to safeguard historical installations, which could break if they upgrade. Newer CommentPress installations (version 3.0 onwards) can upgrade to the current version.
 
 For further information and instructions please see the [CommentPress site](http://www.futureofthebook.org/commentpress/) or contact the developers by email at [cpdev@futureofthebook.org](mailto:cpdev@futureofthebook.org)
 
