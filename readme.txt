@@ -1,14 +1,10 @@
 === CommentPress Core ===
 Contributors: needle, commentpress
-Author URI: http://www.haystack.co.uk
-
-Plugin URI: http://www.futureofthebook.org/commentpress
-
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PZSKM8T5ZP3SC
-Tags: commentpress, buddypress, groups, blogs, groupblogs, content, comments, commenting, debate, collaboration
+Tags: commentpress, buddypress, groups, blogs, groupblogs, comments, commenting, debate, collaboration
 Requires at least: 3.3
 Tested up to: 3.5.1
-Stable tag: 3.4.7
+Stable tag: 3.4.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
