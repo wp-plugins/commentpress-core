@@ -1380,7 +1380,8 @@ table.profile-fields td.label
 
 
 /* Recent Activity (activity tab) */
-#activity_sidebar .workshop_comments_output .comment-identifier p
+#activity_sidebar .workshop_comments_output .comment-identifier p,
+#activity_sidebar .groupsites_comments_output .comment-identifier p
 {
 	/* we have to use p instead of cite because that's how BP stores activity meta */
 	padding: 5px 5px 0 5px;
@@ -1391,21 +1392,32 @@ table.profile-fields td.label
 	line-height: 1.3;
 }
 
-#activity_sidebar .workshop_comments_output .comment-identifier p a
+#activity_sidebar .workshop_comments_output .comment-identifier p a,
+#activity_sidebar .groupsites_comments_output .comment-identifier p a
 {
 	color: #761D19;
 }
 
-#activity_sidebar .workshop_comments_output .comment-identifier p img 
+#activity_sidebar .workshop_comments_output .comment-identifier p img,
+#activity_sidebar .groupsites_comments_output .comment-identifier p img 
 {
 	display: none;
 	vertical-align: middle;
 }
 
-#activity_sidebar .workshop_comments_output .comment-content
+#activity_sidebar .workshop_comments_output .comment-content,
+#activity_sidebar .groupsites_comments_output .comment-content
 {
 	border-bottom: none;
 }
+
+#activity_sidebar  .groupsites_comments_output li.groups 
+{
+	/* override BP Groupblog compatibility for now */
+	border-left: none;
+	margin-bottom: 0;
+}
+
 
 
 
@@ -1546,6 +1558,85 @@ ul#groupblog-details li
 	margin-left: 1.2em;
 	margin-bottom: 5px;
 	list-style: disc;
+}
+
+
+
+
+
+
+/*
+--------------------------------------------------------------------------------
+Compatibility with BP Group Sites plugin
+--------------------------------------------------------------------------------
+*/
+
+#bpgsites-post-in-box
+{
+	margin: 0.4em;
+}
+
+#bpgsites-post-in-box span,
+.bpgsites_comment_group
+{
+	font-family: sans-serif;
+	text-transform: uppercase;
+}
+
+.bpgsites_comment_group_mine,
+.bpgsites_comment_group_linked,
+.bpgsites_comment_group_public
+{
+	font-size: 70%;
+	font-weight: bold;
+	padding: 10px 0 5px 0;
+}
+
+.bpgsites_comment_group_mine
+{
+	padding-top: 0;
+}
+
+#bpgsites-post-in-box span,
+.bpgsites_comment_group_label
+{
+	font-size: 70%;
+}
+
+#bpgsites-post-in-box select
+{
+	font-size: 70%;
+}
+
+#comments_in_page_wrapper .comments_container h3.bpgsites_group_filter_heading
+{
+	padding: 0;
+	background-color: #d6d6d6;
+}
+
+#comments_in_page_wrapper .comments_container h3.bpgsites_group_filter_heading:hover
+{
+	background-color: #ccc;
+}
+
+#comments_in_page_wrapper .comments_container #bpgsites_group_filter
+{
+	background-color: #dfdfdf;
+}
+
+@media all and (max-width: 1200px) {
+
+	.bpgsites_comment_group
+	{
+		padding: 5px;
+	}
+
+	.bpgsites_comment_group_label
+	{
+		padding: 5px;
+		font-size: 100%;
+	}
+
 }
 
 
