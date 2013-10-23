@@ -555,17 +555,30 @@ class CommentpressCoreParser {
 			--------------------------------------------------------------------
 			*/
 			
+			// init start (for ol attribute)
+			$start = 0;
+			
 			// further checks when there's a <ol> tag
 			if ( $tag == 'ol' ) {
 				
-				// set pattern by TinyMCE tag attribute
-				switch ( substr( $paragraph, 0 , 21 ) ) {
+				// compat with WP Footnotes
+				if ( substr( $paragraph, 0 , 21 ) == '<ol class="footnotes"' ) {
 					
-					// compat with WP Footnotes
-					case '<ol class="footnotes"': $tag = 'ol class="footnotes"'; break;
-					
-					// see notes for p tag above
+					// construct tag
+					$tag = 'ol class="footnotes"';
 				
+				// add support for <ol start="n">
+				} elseif ( substr( $paragraph, 0 , 11 ) == '<ol start="' ) {
+					
+					// parse tag
+					preg_match( '/start="([^"]*)"/i', $paragraph, $matches );
+					
+					// construct new tag
+					$tag = 'ol '.$matches[0];
+					
+					// set start
+					$start = $matches[1];
+					
 				}
 	
 			}
@@ -578,7 +591,8 @@ class CommentpressCoreParser {
 				$this->parent_obj->display->get_para_tag( 
 					$text_signature, 
 					$paragraph_icon.$comment_icon, 
-					$tag 
+					$tag,
+					$start
 				) 
 				
 			);
