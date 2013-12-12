@@ -136,12 +136,92 @@ function commentpress_setup(
 	// ignore BP 1.7 auto-compatibility - see commentpress_enqueue_theme_styles()
 	//add_theme_support( 'buddypress' );
 	
+	// if we have the plugin enabled...
+	global $commentpress_core;
+	if ( is_object( $commentpress_core ) ) {
+	
+		// get the option
+		$featured_images = $commentpress_core->db->option_get( 'cp_featured_images', 'n' );
+	
+		// do we have the featured imaegs option enabled?
+		if ( $featured_images == 'y' ) {
+			
+			// use Featured Images (also known as post thumbnails)
+			add_theme_support( 'post-thumbnails' );
+	
+			// define a custom image size, cropped to fit
+			add_image_size( 
+				'commentpress-feature', 
+				apply_filters( 'cp_feature_image_width', 1200 ), 
+				apply_filters( 'cp_feature_image_height', 600 ), 
+				true // crop
+			);
+	
+		}
+		
+	}
+
 }
 endif; // commentpress_setup
 
 // add after theme setup hook
 add_action( 'after_setup_theme', 'commentpress_setup' );
 
+
+
+
+
+
+if ( ! function_exists( 'commentpress_get_feature_image' ) ):
+/** 
+ * @description: show feature image
+ */
+function commentpress_get_feature_image() {
+	
+	// do we have a featured image?
+	if ( has_post_thumbnail() ) {
+	
+		// show it
+		echo '<div class="cp_feature_image">';
+		
+		echo get_the_post_thumbnail( get_the_ID(), 'commentpress-feature' );
+		
+		?>
+		<div class="cp_featured_title">
+			<div class="cp_featured_title_inner">
+				
+				<?php if ( is_page() ) { ?>
+				
+					<?php if ( commentpress_get_post_title_visibility( get_the_ID() ) ) { ?>
+					<h2 class="post_title"><a href="<?php the_permalink() ?>"><?php the_title(); ?></a></h2>
+					<?php } ?>
+
+					<?php if ( commentpress_get_post_meta_visibility( get_the_ID() ) ) { ?>
+					<div class="search_meta">
+						<?php commentpress_echo_post_meta(); ?>
+					</div>
+					<?php } ?>
+				
+				<?php } else { ?>
+
+					<h2 class="post_title"><a href="<?php the_permalink() ?>"><?php the_title(); ?></a></h2>
+
+					<div class="search_meta">
+						<?php commentpress_echo_post_meta(); ?>
+					</div>
+				
+				<?php } ?>
+
+			</div>
+		</div>
+		<?php
+
+		echo '</div>';
+
+	}
+	
+}
+endif; // commentpress_get_feature_image
 
 
 
@@ -832,7 +912,7 @@ function commentpress_get_header_image(
 		// show the uploaded image
 		echo apply_filters(
 			'commentpress_header_image',
-			'<img src="'.$options['cp_inline_header_image'].'" class="cp_logo_image"'.$style.' alt="Logo" />'
+			'<img src="'.$options['cp_inline_header_image'].'" class="cp_logo_image"'.$style.' alt="'.__( 'Logo', 'commentpress-core' ).'" />'
 		);
 		
 		// --<
@@ -1832,12 +1912,28 @@ function commentpress_format_comment( $comment, $context = 'all' ) {
 	
 	// construct link
 	$_comment_link = get_comment_link( $comment->comment_ID );
+	
+	// construct anchor
+	$_comment_anchor = '<a href="'.$_comment_link.'" title="'.esc_attr( __( 'See comment in context', 'commentpress-core' ) ).'">'.__( 'Comment', 'commentpress-core' ).'</a>';
+	
+	// construct date
+	$_comment_date = date( 'F jS, Y', strtotime( $comment->comment_date ) );
 
 	// comment header
-	$_comment_meta = '<div class="comment_meta"><a href="'.$_comment_link.'" title="See comment in context">Comment</a> '.$_context.' on '.date('F jS, Y',strtotime($comment->comment_date)).'</div>'."\n";
-
+	$_comment_meta = '<div class="comment_meta">'.$_comment_anchor.' '.$_context.' on '.$_comment_date.'</div>'."\n";
+	
+	// allow filtering by plugins
+	$_comment_meta = apply_filters( 
+		'commentpress_format_comment_meta', // filter name
+		$_comment_meta, // built meta
+		$comment,
+		$_comment_anchor,
+		$_context,
+		$_comment_date
+	);
+	
 	// comment content
-	$_comment_body = '<div class="comment-content">'.wpautop(convert_chars(wptexturize($comment->comment_content))).'</div>'."\n";
+	$_comment_body = '<div class="comment-content">'.apply_filters( 'comment_text', $comment->comment_content ).'</div>'."\n";
 	
 	// construct comment
 	return '<div class="comment_wrapper">'."\n".$_comment_meta.$_comment_body.'</div>'."\n\n";
@@ -2030,6 +2126,14 @@ if ( ! function_exists( 'commentpress_get_all_comments_page_content' ) ):
  */
 function commentpress_get_all_comments_page_content() {
 
+	// allow oEmbed in comments
+	global $wp_embed;
+	if ( is_a( $wp_embed, 'WP_Embed' ) ) {
+		add_filter( 'comment_text', array( $wp_embed, 'autoembed' ), 1 );
+	}
+	
+	
+	
 	// declare access to globals
 	global $commentpress_core;
 
@@ -2243,13 +2347,21 @@ if ( ! function_exists( 'commentpress_get_comments_by_page_content' ) ):
  */
 function commentpress_get_comments_by_page_content() {
 
+	// allow oEmbed in comments
+	global $wp_embed;
+	if ( is_a( $wp_embed, 'WP_Embed' ) ) {
+		add_filter( 'comment_text', array( $wp_embed, 'autoembed' ), 1 );
+	}
+	
+	
+	
 	// declare access to globals
 	global $commentpress_core;
 
 	
 	
 	// set title
-	$_page_content = '<h2 class="post_title">Comments by Commenter</h2>'."\n\n";
+	$_page_content = '<h2 class="post_title">'.__( 'Comments by Commenter', 'commentpress-core' ).'</h2>'."\n\n";
 
 	// get data
 	$_page_content .= commentpress_get_comments_by_content();
@@ -2356,6 +2468,14 @@ if ( ! function_exists( 'commentpress_get_comment_activity' ) ):
  */
 function commentpress_get_comment_activity( $scope = 'all' ) {
 
+	// allow oEmbed in comments
+	global $wp_embed;
+	if ( is_a( $wp_embed, 'WP_Embed' ) ) {
+		add_filter( 'comment_text', array( $wp_embed, 'autoembed' ), 1 );
+	}
+	
+	
+	
 	// declare access to globals
 	global $commentpress_core, $post;
 
@@ -2407,153 +2527,8 @@ function commentpress_get_comment_activity( $scope = 'all' ) {
 		// loop
 		foreach ($_data as $comment) {
 		
-			// enable Wordpress API on comment
-			$GLOBALS['comment'] = $comment;
+			$_page_content .= commentpress_get_comment_activity_item( $comment );
 		
-			// only comments until we decide what to do with pingbacks
-			if ( $comment->comment_type != 'pingback' ) //{
-
-
-
-			// test for anonymous comment (usually generated by WP itself in multisite installs)
-			if ( empty( $comment->comment_author ) ) {
-			
-				$comment->comment_author = 'Anonymous';
-			
-			}
-			
-			
-
-			// was it a registered user?
-			if ( $comment->user_id != '0' ) {
-			
-				// get user details
-				$user = get_userdata( $comment->user_id );
-				//print_r( $user->display_name ); die();
-				
-				// get user link
-				$user_link = commentpress_get_user_link( $user );
-				
-				// construct author citation
-				$author = '<cite class="fn"><a href="'.$user_link.'">'.esc_html( $comment->comment_author ).'</a></cite>';
-				
-				// construct link to user url
-				$author = ( $user_link != '' AND $user_link != 'http://' ) ? 
-							'<cite class="fn"><a href="'.$user_link.'">'.esc_html( $comment->comment_author ).'</a></cite>' : 
-							 '<cite class="fn">'.esc_html( $comment->comment_author ).'</cite>';
-				
-			} else {
-			
-				// construct link to commenter url
-				$author = ( $comment->comment_author_url != '' AND $comment->comment_author_url != 'http://' ) ? 
-							'<cite class="fn"><a href="'.$comment->comment_author_url.'">'.esc_html( $comment->comment_author ).'</a></cite>' : 
-							 '<cite class="fn">'.esc_html( $comment->comment_author ).'</cite>';
-			
-			}
-				
-			
-			
-			// approved comment?
-			if ($comment->comment_approved == '0') {
-				$comment_text = '<p><em>Comment awaiting moderation</em></p>';
-			} else {
-				$comment_text = get_comment_text( $comment->comment_ID );
-			}
-		
-		
-			
-			// default to not on post
-			$is_on_current_post = '';
-
-			// on current post?
-			if ( is_singular() AND is_object( $post ) AND $comment->comment_post_ID == $post->ID ) {
-				
-				// access paging globals
-				global $multipage, $page;
-				
-				// is it the same page, if paged?
-				if ( $multipage ) {
-					
-					/*
-					print_r( array( 
-						'multipage' => $multipage, 
-						'page' => $page 
-					) ); die();
-					*/
-					
-					// if it has a text sig
-					if ( 
-					
-						!is_null( $comment->comment_signature ) 
-						AND $comment->comment_signature != '' 
-						
-					) {
-		
-						// set key
-						$key = '_cp_comment_page';
-						
-						// if the custom field already has a value...
-						if ( get_comment_meta( $comment->comment_ID, $key, true ) != '' ) {
-						
-							// get comment's page from meta
-							$page_num = get_comment_meta( $comment->comment_ID, $key, true );
-							
-							// is it this one?
-							if ( $page_num == $page ) {
-							
-								// is the right page
-								$is_on_current_post = ' comment_on_post';
-							
-							}
-							
-						}
-					
-					} else {
-					
-						// it's always the right page for page-level comments
-						$is_on_current_post = ' comment_on_post';
-					
-					}
-					
-				} else {
-					
-					// must be the right page
-					$is_on_current_post = ' comment_on_post';
-				
-				}
-				
-			}
-		
-		
-			
-			// open li
-			$_page_content .= '<li><!-- item li -->'."\n\n";
-	
-			// show the comment
-			$_page_content .= '
-<div class="comment-wrapper">
-
-<div class="comment-identifier">
-'.get_avatar( $comment, $size='32' ).'
-'.$author.'		
-<p class="comment_activity_date"><a class="comment_activity_link'.$is_on_current_post.'" href="'.htmlspecialchars( get_comment_link() ).'">'.get_comment_date().' at '.get_comment_time().'</a></p>
-</div><!-- /comment-identifier -->
-
-
-
-<div class="comment-content">
-'.apply_filters('comment_text', $comment_text ).'
-</div><!-- /comment-content -->
-
-<div class="reply"><p><a class="comment_activity_link'.$is_on_current_post.'" href="'.htmlspecialchars( get_comment_link() ).'">'.__( 'See in context', 'commentpress-core' ).'</a></p></div><!-- /reply -->
-
-</div><!-- /comment-wrapper -->
-
-';
-
-			// close li
-			$_page_content .= '</li><!-- /item li -->'."\n\n";
-			
 		}
 	
 		// close ul
@@ -2574,6 +2549,178 @@ endif; // commentpress_get_comment_activity
 
 
 
+if ( ! function_exists( 'commentpress_get_comment_activity_item' ) ):
+/** 
+ * @description: get comment formatted for the activity sidebar
+ */
+function commentpress_get_comment_activity_item( $comment ) {
+	
+	// enable Wordpress API on comment
+	$GLOBALS['comment'] = $comment;
+	
+	// declare access to globals
+	global $commentpress_core, $post;
+
+	// init markup
+	$item_html = '';
+	
+	
+	
+	// only comments until we decide what to do with pingbacks
+	if ( $comment->comment_type == 'pingback' ) { continue; }
+
+
+
+	// test for anonymous comment (usually generated by WP itself in multisite installs)
+	if ( empty( $comment->comment_author ) ) {
+	
+		$comment->comment_author = __( 'Anonymous', 'commentpress-core' );
+	
+	}
+	
+	
+
+	// was it a registered user?
+	if ( $comment->user_id != '0' ) {
+	
+		// get user details
+		$user = get_userdata( $comment->user_id );
+		//print_r( $user->display_name ); die();
+		
+		// get user link
+		$user_link = commentpress_get_user_link( $user );
+		
+		// construct author citation
+		$author = '<cite class="fn"><a href="'.$user_link.'">'.esc_html( $comment->comment_author ).'</a></cite>';
+		
+		// construct link to user url
+		$author = ( $user_link != '' AND $user_link != 'http://' ) ? 
+					'<cite class="fn"><a href="'.$user_link.'">'.esc_html( $comment->comment_author ).'</a></cite>' : 
+					 '<cite class="fn">'.esc_html( $comment->comment_author ).'</cite>';
+		
+	} else {
+	
+		// construct link to commenter url
+		$author = ( $comment->comment_author_url != '' AND $comment->comment_author_url != 'http://' ) ? 
+					'<cite class="fn"><a href="'.$comment->comment_author_url.'">'.esc_html( $comment->comment_author ).'</a></cite>' : 
+					 '<cite class="fn">'.esc_html( $comment->comment_author ).'</cite>';
+	
+	}
+		
+	
+	
+	// approved comment?
+	if ($comment->comment_approved == '0') {
+		$comment_text = '<p><em>'.__( 'Comment awaiting moderation', 'commentpress-core' ).'</em></p>';
+	} else {
+		$comment_text = get_comment_text( $comment->comment_ID );
+	}
+
+
+	
+	// default to not on post
+	$is_on_current_post = '';
+
+	// on current post?
+	if ( is_singular() AND is_object( $post ) AND $comment->comment_post_ID == $post->ID ) {
+		
+		// access paging globals
+		global $multipage, $page;
+		
+		// is it the same page, if paged?
+		if ( $multipage ) {
+			
+			/*
+			print_r( array( 
+				'multipage' => $multipage, 
+				'page' => $page 
+			) ); die();
+			*/
+			
+			// if it has a text sig
+			if ( 
+			
+				!is_null( $comment->comment_signature ) 
+				AND $comment->comment_signature != '' 
+				
+			) {
+
+				// set key
+				$key = '_cp_comment_page';
+				
+				// if the custom field already has a value...
+				if ( get_comment_meta( $comment->comment_ID, $key, true ) != '' ) {
+				
+					// get comment's page from meta
+					$page_num = get_comment_meta( $comment->comment_ID, $key, true );
+					
+					// is it this one?
+					if ( $page_num == $page ) {
+					
+						// is the right page
+						$is_on_current_post = ' comment_on_post';
+					
+					}
+					
+				}
+			
+			} else {
+			
+				// it's always the right page for page-level comments
+				$is_on_current_post = ' comment_on_post';
+			
+			}
+			
+		} else {
+			
+			// must be the right page
+			$is_on_current_post = ' comment_on_post';
+		
+		}
+		
+	}
+
+
+	
+	// open li
+	$item_html .= '<li><!-- item li -->'."\n\n";
+
+	// show the comment
+	$item_html .= '
+<div class="comment-wrapper">
+
+<div class="comment-identifier">
+'.get_avatar( $comment, $size='32' ).'
+'.$author.'		
+<p class="comment_activity_date"><a class="comment_activity_link'.$is_on_current_post.'" href="'.htmlspecialchars( get_comment_link() ).'">'.get_comment_date().' at '.get_comment_time().'</a></p>
+</div><!-- /comment-identifier -->
+
+
+
+<div class="comment-content">
+'.apply_filters( 'comment_text', $comment_text ).'
+</div><!-- /comment-content -->
+
+<div class="reply"><p><a class="comment_activity_link'.$is_on_current_post.'" href="'.htmlspecialchars( get_comment_link() ).'">'.__( 'See in context', 'commentpress-core' ).'</a></p></div><!-- /reply -->
+
+</div><!-- /comment-wrapper -->
+
+';
+
+	// close li
+	$item_html .= '</li><!-- /item li -->'."\n\n";
+	
+	// --<
+	return $item_html;
+	
+}
+endif; // commentpress_get_comment_activity_item
+
+
+
+
+
+
 if ( ! function_exists( 'commentpress_get_comments_by_para' ) ):
 /** 
  * @description: get comments delimited by paragraph
@@ -2581,6 +2728,14 @@ if ( ! function_exists( 'commentpress_get_comments_by_para' ) ):
  *
  */
 function commentpress_get_comments_by_para() {
+	
+	// allow oEmbed in comments
+	global $wp_embed;
+	if ( is_a( $wp_embed, 'WP_Embed' ) ) {
+		add_filter( 'comment_text', array( $wp_embed, 'autoembed' ), 1 );
+	}
+	
+	
 	
 	// allow plugins to precede comments
 	do_action( 'commentpress_before_scrollable_comments' );
@@ -2599,6 +2754,20 @@ function commentpress_get_comments_by_para() {
 	// get text signatures
 	//$text_sigs = $commentpress_core->db->get_text_sigs();
 
+	// init starting paragraph number
+	$start_num = 1;
+	
+	// set key
+	$key = '_cp_starting_para_number';
+	
+	// if the custom field already has a value...
+	if ( get_post_meta( $post->ID, $key, true ) != '' ) {
+	
+		// get it
+		$start_num = absint( get_post_meta( $post->ID, $key, true ) );
+		
+	}
+	
 
 
 	// if we have any...
@@ -2754,7 +2923,7 @@ function commentpress_get_comments_by_para() {
 					$text_sig = $text_signature;
 				
 					// paragraph number
-					$para_num = $sig_counter;
+					$para_num = $sig_counter + ( $start_num - 1 );
 					
 					// which parsing method?
 					if ( defined( 'COMMENTPRESS_BLOCK' ) ) {
@@ -3360,7 +3529,7 @@ function commentpress_get_comment_markup( $comment, $args, $depth ) {
 
 
 <div class="comment-content'.$_comment_orphan.'">
-'.apply_filters('comment_text', $comment_text ).'
+'.apply_filters( 'comment_text', $comment_text ).'
 </div><!-- /comment-content -->
 
 
@@ -3794,7 +3963,7 @@ function commentpress_add_wp_editor() {
 	$settings = array(
 		
 		// configure comment textarea
-		'media_buttons' => false,
+		'media_buttons' => true,
 		'textarea_name' => 'comment',
 		'textarea_rows' => 10,
 		
@@ -3824,19 +3993,19 @@ function commentpress_add_wp_editor() {
 		
 		),
 		
-		// no quicktags
-		'quicktags' => false
+		// uncomment for no quicktags
+		//'quicktags' => false
 	
-	);
-	
-	/*
-	had we wanted quicktags, we could have used:
+		///*
+		//when quicktags enabled, we can use:
 	
 		'quicktags' => array(
 			'buttons' => 'strong,em,ul,ol,li,link,close'
 		)
 
-	*/
+		//*/
+	
+	);
 	
 	// create editor
 	wp_editor(
