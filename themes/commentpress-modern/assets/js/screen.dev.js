@@ -15,13 +15,16 @@ NOTES
 if ( 'undefined' !== typeof CommentpressSettings ) {
 	
 	// define our vars
-	var cp_wp_adminbar, cp_bp_adminbar, cp_comments_open, cp_special_page, cp_tinymce,
+	var cp_wp_adminbar, cp_wp_adminbar_height, cp_wp_adminbar_expanded, cp_bp_adminbar, 
+		cp_comments_open, cp_special_page, cp_tinymce,
 		cp_promote_reading, cp_is_mobile, cp_is_touch, cp_is_tablet, cp_cookie_path,
 		cp_multipage_page, cp_template_dir, cp_plugin_dir, cp_toc_chapter_is_page, cp_show_subpages,
 		cp_default_sidebar, cp_is_signup_page, cp_scroll_speed, cp_min_page_width;
 	
 	// set our vars
 	cp_wp_adminbar = CommentpressSettings.cp_wp_adminbar;
+	cp_wp_adminbar_height = parseInt( CommentpressSettings.cp_wp_adminbar_height );
+	cp_wp_adminbar_expanded = parseInt( CommentpressSettings.cp_wp_adminbar_expanded );
 	cp_bp_adminbar = CommentpressSettings.cp_bp_adminbar;
 	cp_comments_open = CommentpressSettings.cp_comments_open;
 	cp_special_page = CommentpressSettings.cp_special_page;
@@ -46,7 +49,7 @@ if ( 'undefined' !== typeof CommentpressSettings ) {
 
 
 // define vars
-var msie6, cp_wp_adminbar_height, cp_header_height, cp_header_animating,
+var msie6, cp_header_height, cp_header_animating,
 	cp_toc_on_top, page_highlight, cp_header_minimised, cp_sidebar_minimised,
 	cp_container_top_max, cp_container_top_min;
 
@@ -61,7 +64,6 @@ if ( 'undefined' !== typeof cp_msie6 ) {
 }
 
 // define utility globals
-cp_wp_adminbar_height = 28;
 cp_header_height = 70;
 cp_header_animating = false;
 
@@ -144,8 +146,19 @@ function cp_page_setup() {
 		if ( cp_wp_adminbar == 'y' ) {
 		
 			// move down
-			styles += '#header { top: ' + cp_wp_adminbar_height + 'px; } ';
-			styles += '#sidebar, #navigation { top: ' + (cp_wp_adminbar_height + cp_header_height) + 'px; } ';
+			styles += 'body.admin-bar #header, #header { top: ' + cp_wp_adminbar_height + 'px; } ';
+			styles += 'body.admin-bar #sidebar, #sidebar, body.admin-bar #navigation, #navigation { top: ' + (cp_wp_adminbar_height + cp_header_height) + 'px; } ';
+			
+			// if we have the responsive admin bar in 3.8+
+			if ( cp_wp_adminbar_height == '32' ) {
+				
+				// react to responsive admin bar
+				styles += '@media screen and ( max-width: 782px ) { ' + 
+							'body.admin-bar #header, #header { top: ' + cp_wp_adminbar_expanded + 'px; }' + 
+							'body.admin-bar #sidebar, #sidebar, body.admin-bar #navigation, #navigation { top: ' + (cp_wp_adminbar_expanded + cp_header_height) + 'px; }' + 
+						' } ';
+			
+			}
 		
 		}
 		
@@ -572,7 +585,7 @@ function commentpress_setup_comment_headers() {
 			//alert( 'comment_block_permalink click' );
 	
 			// if not the whole page or pings...
-			if( text_sig != '' && text_sig != 'pingbacksandtrackbacks' ) {
+			if( text_sig !== '' && text_sig != 'pingbacksandtrackbacks' ) {
 	
 				// get text block
 				textblock = jQuery('#textblock-' + text_sig);
@@ -793,7 +806,7 @@ function commentpress_scroll_page_to_textblock( text_sig ) {
 	var textblock;
 	
 	// if not the whole page...
-	if( text_sig != '' ) {
+	if( text_sig !== '' ) {
 
 		// get text block
 		textblock = jQuery('#textblock-' + text_sig);
@@ -1075,7 +1088,7 @@ function cp_scroll_to_anchor_on_load() {
 	//console.log( url );
 	
 	// do we have a comment permalink?
-	if ( url.match('#comment-' ) ) {
+	if ( url.match( '#comment-' ) ) {
 	
 		// activate comments sidebar
 		cp_activate_sidebar('comments');
@@ -1113,7 +1126,7 @@ function cp_scroll_to_anchor_on_load() {
 				if ( cp_tinymce == '1' ) { 
 					
 					// if we have link text, then a comment reply is allowed...
-					if ( jQuery( '#comment-' + comment_id + ' > .reply' ).text() != '' ) {
+					if ( jQuery( '#comment-' + comment_id + ' > .reply' ).text() !== '' ) {
 						
 						// temporarily override global so that TinyMCE is not
 						// meddled with in any way...
@@ -1159,7 +1172,7 @@ function cp_scroll_to_anchor_on_load() {
 			cp_scroll_comments( jQuery('#comment-' + comment_id), 1, 'flash' );
 			
 			// if not the whole page...
-			if( text_sig != '' ) {
+			if( text_sig !== '' ) {
 	
 				// get text block
 				textblock = jQuery('#textblock-' + text_sig);
@@ -1415,7 +1428,7 @@ function cp_do_comment_icon_action( text_sig, mode ) {
 	jQuery.unhighlight_para();
 	
 	// did we get a text_sig?
-	if ( text_sig != '' ) {
+	if ( text_sig !== '' ) {
 	
 		// get text block
 		textblock = jQuery('#textblock-' + text_sig);
@@ -2083,20 +2096,30 @@ jQuery('html').addClass('js');
 // show menu
 var setSidebarHeight = function() {
 	
+	// define vars
+	var viewport, header_height, switcher_height, sidebar_header_height, wpadminbar_height,
+		toc_sidebar_height, switcher_display, sidebar_switcher_height, sidebar_height;
+	
 	// get window
-	var viewport = jQuery(window).height();
+	viewport = jQuery(window).height();
 	
 	// get interface elements
-	var header_height = jQuery('#header').height();
-	var switcher_height = jQuery('#switcher').height();
-	var sidebar_header_height = jQuery('#toc_sidebar > .sidebar_header').height();
-	var wpadminbar_height = jQuery('#wpadminbar').height();
+	header_height = jQuery('#header').height();
+	switcher_height = jQuery('#switcher').height();
+	sidebar_header_height = jQuery('#toc_sidebar > .sidebar_header').height();
+	
+	// is the admin bar shown?
+	if ( cp_wp_adminbar == 'y' ) {
+		wpadminbar_height = jQuery('#wpadminbar').height();
+	} else {
+		wpadminbar_height = 0;
+	}
 	
 	// calculate
-	var toc_sidebar_height = viewport - (header_height + sidebar_header_height + wpadminbar_height);
+	toc_sidebar_height = viewport - (header_height + sidebar_header_height + wpadminbar_height);
 	
 	// allow for switcher visibility
-	var switcher_display = jQuery('#switcher').css('display');
+	switcher_display = jQuery('#switcher').css('display');
 	if (switcher_display === 'block') {			
 		toc_sidebar_height = toc_sidebar_height - switcher_height;
 	}
@@ -2107,8 +2130,8 @@ var setSidebarHeight = function() {
 	
 	
 	// get sidebar tabs header height instead
-	var sidebar_switcher_height = jQuery('#sidebar_tabs').height();
-	var sidebar_height = viewport - (header_height + sidebar_switcher_height + wpadminbar_height);
+	sidebar_switcher_height = jQuery('#sidebar_tabs').height();
+	sidebar_height = viewport - (header_height + sidebar_switcher_height + wpadminbar_height);
 	
 	// allow for switcher visibility
 	if (switcher_display === 'block') {			
@@ -2118,7 +2141,7 @@ var setSidebarHeight = function() {
 	// set height
 	jQuery('#sidebar .sidebar_contents_wrapper').css( 'height', sidebar_height + 'px' );
 
-}
+};
 
 
 
@@ -2129,21 +2152,21 @@ var showMenu = function() {
 	jQuery('body').toggleClass('active-nav').removeClass('active-sidebar');
 	jQuery('.sidebar-button,.content-button').removeClass('active-button');				
 	jQuery('.navigation-button').toggleClass('active-button');	
-}
+};
 
 // show content
 var showContent = function() {
 	jQuery('body').removeClass('active-sidebar').removeClass('active-nav');
 	jQuery('.navigation-button,.sidebar-button').removeClass('active-button');					
 	jQuery('.content-button').toggleClass('active-button');
-}
+};
 
 // show sidebar
 var showSidebar = function() {
 	jQuery('body').toggleClass('active-sidebar').removeClass('active-nav');
 	jQuery('.navigation-button,.content-button').removeClass('active-button');					
 	jQuery('.sidebar-button').toggleClass('active-button');
-}
+};
 
 
 

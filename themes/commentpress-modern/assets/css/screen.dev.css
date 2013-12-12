@@ -184,13 +184,20 @@ input[type=text], input[type=password], textarea { width: 12.25em; *width: 11.9e
 /* prevents outlines - we set them explicitly for elements that require them */
 a:focus { outline: 0; }
 
-blockquote 
+blockquote,
+.blockquote-in-para
 {
 	margin-left: 0;
 	margin-right: 0;
 	padding: 0 15px 0 15px;
 	border-left: 1px solid #ddd;
 	font-style: italic;
+}
+
+.blockquote-in-para
+{
+	display: block;
+	margin: 0.7em 0;
 }
 
 /* WordPress presentational styles */
@@ -1137,6 +1144,19 @@ p.comment_activity_date
 {
 	list-style-type: decimal;
 	background: none;
+}
+
+/* YouTube embeds */
+.comment-content iframe 
+{
+	max-width: 100%;
+}
+
+/* Images in comments */
+.comment-content img 
+{
+	max-width: 97%;
+	height: auto;
 }
 
 .reply
@@ -2757,6 +2777,79 @@ Comment Orphaning
 .comment-content.comment-orphan
 {
 	background-color: #F5B0A6 !important;
+}
+
+
+
+
+
+
+/*
+--------------------------------------------------------------------------------
+Feature images
+--------------------------------------------------------------------------------
+*/
+
+.cp_feature_image
+{
+	position: relative;
+	line-height: 0;
+}
+
+.cp_feature_image img.wp-post-image
+{
+	width: 100%;
+	height: auto;
+}
+
+.cp_feature_image .cp_featured_title
+{
+	width: 100%;
+	background: #fff;
+	background: rgba( 255, 255, 255, 0.66 );
+	position: absolute;
+	bottom: 0;
+}
+
+.cp_feature_image .cp_featured_title .cp_featured_title_inner
+{
+	padding: 2% 12%;
+}
+
+.cp_feature_image .cp_featured_title .cp_featured_title_inner h2.post_title
+{
+	margin: 0;
+}
+
+.cp_feature_image .cp_featured_title .cp_featured_title_inner div.search_meta
+{
+	margin-top: 0;
+	margin-bottom: 0.3em;
+}
+
+
+
+
+
+/* 
+--------------------------------------------------------------------------------
+Compatibility with WordPress 3.8+
+--------------------------------------------------------------------------------
+*/
+
+/* sans serif is easier to read, methinks */
+body .wp-dialog
+{
+	font-family: sans-serif;
+}
+
+/* override admin bar z-index */
+@media screen and ( max-width: 782px ) {
+
+	html body #wpadminbar {
+		z-index: 99999 !important;
+	}
+	
 }
 
 
