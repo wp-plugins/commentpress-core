@@ -3904,11 +3904,22 @@ function commentpress_add_wp_editor() {
 		
 	);
 	
+	// allow media buttons setting to be overridden
+	$media_buttons = apply_filters( 'commentpress_rte_media_buttons', true );
+
+	// allow quicktags setting to be overridden
+	$quicktags = apply_filters( 
+		'commentpress_rte_quicktags', 
+		array(
+			'buttons' => 'strong,em,ul,ol,li,link,close'
+		)
+	);
+	
 	// our settings
 	$settings = array(
 		
 		// configure comment textarea
-		'media_buttons' => true,
+		'media_buttons' => $media_buttons,
 		'textarea_name' => 'comment',
 		'textarea_rows' => 10,
 		
@@ -3938,17 +3949,8 @@ function commentpress_add_wp_editor() {
 		
 		),
 		
-		// uncomment for no quicktags
-		//'quicktags' => false
-	
-		///*
-		//when quicktags enabled, we can use:
-	
-		'quicktags' => array(
-			'buttons' => 'strong,em,ul,ol,li,link,close'
-		)
-
-		//*/
+		// configure quicktags
+		'quicktags' => $quicktags
 	
 	);
 	
@@ -4761,7 +4763,7 @@ if ( ! function_exists( 'commentpress_get_feature_image' ) ):
 function commentpress_get_feature_image() {
 	
 	// do we have a featured image?
-	if ( has_post_thumbnail() ) {
+	if ( commentpress_has_feature_image() ) {
 	
 		// show it
 		echo '<div class="cp_feature_image">';
@@ -4804,6 +4806,27 @@ function commentpress_get_feature_image() {
 	
 }
 endif; // commentpress_get_feature_image
+
+
+
+
+
+
+/** 
+ * @description: utility to test for feature image, because has_post_thumbnail() fails sometimes
+ * @see http://codex.wordpress.org/Function_Reference/has_post_thumbnail
+ */
+function commentpress_has_feature_image() {
+	
+	// replacement check
+	if ( '' != get_the_post_thumbnail() ) { 
+		return true;
+	}
+	
+	// --<
+	return false;
+	
+}
 
 
 

@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: commentpress, buddypress, groups, blogs, groupblogs, comments, commenting, debate, collaboration
 Requires at least: 3.4
 Tested up to: 3.8
-Stable tag: 3.5.5
+Stable tag: 3.5.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,7 +27,7 @@ For further information and instructions please see the [CommentPress site](http
 Many thanks to the following for translations: 
 
 * French - [Pouhiou](http://wordpress.org/support/profile/pouhiou)
-* Spanish - [WebHostingHub](http://www.webhostinghub.com/)
+* Spanish - Andrew Kurtis from [WebHostingHub](http://www.webhostinghub.com/)
 
 
 
@@ -219,6 +219,12 @@ When EVERY site has done this, go to "Network Admin" -> "Plugins":
 
 
 == Changelog == 
+
+
+<h4>3.5.6</h4>
+
+* Restores compatibility with JetPack 2.7 which parses content in the document head
+
 
 
 <h4>3.5.5</h4>
