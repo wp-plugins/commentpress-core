@@ -1690,13 +1690,13 @@ $this->_get_options().
 	
 		// define CommentPress Core theme options
 		$options = '
-<h3>'.__( 'Options for CommentPress Core', 'commentpress-core' ).'</h3>
-
 <p>'.__( 'When the CommentPress Default Theme (or a valid CommentPress Child Theme) is active, the following options modify its behaviour.', 'commentpress-core' ).'</p>
 
 
 
-<h4>'.__( 'Global Options', 'commentpress-core' ).'</h4>
+<hr />
+
+<h3>'.__( 'Global Options', 'commentpress-core' ).'</h3>
 
 <table class="form-table">
 
@@ -1710,7 +1710,9 @@ $this->_get_options().
 
 
 
-<h4>'.__( 'Table of Contents', 'commentpress-core' ).'</h4>
+<hr />
+
+<h3>'.__( 'Table of Contents', 'commentpress-core' ).'</h3>
 
 <p>'.__( 'Choose how you want your Table of Contents to appear and function.<br />
 <strong style="color: red;">NOTE!</strong> When Chapters are Pages, the TOC will always show Sub-Pages, since collapsing the TOC makes no sense in that situation.', 'commentpress-core' ).'</p>
@@ -1723,7 +1725,9 @@ $this->_get_options().
 
 
 
-<h4>'.__( 'Page Display Options', 'commentpress-core' ).'</h4>
+<hr />
+
+<h3>'.__( 'Page Display Options', 'commentpress-core' ).'</h3>
 
 <table class="form-table">
 
@@ -1754,6 +1758,8 @@ $this->_get_options().
 		</td>
 	</tr>
 
+'.$this->_get_textblock_meta().'
+
 	<tr valign="top">
 		<th scope="row"><label for="cp_excerpt_length">'.__( 'Blog excerpt length', 'commentpress-core' ).'</label></th>
 		<td><input type="text" id="cp_excerpt_length" name="cp_excerpt_length" value="'.$this->db->option_get('cp_excerpt_length').'" class="small-text" /> '.__( 'words', 'commentpress-core' ).'</td>
@@ -1763,7 +1769,9 @@ $this->_get_options().
 
 
 
-<h4>'.__( 'Commenting Options', 'commentpress-core' ).'</h4>
+<hr />
+
+<h3>'.__( 'Commenting Options', 'commentpress-core' ).'</h3>
 
 <table class="form-table">
 
@@ -1775,7 +1783,9 @@ $this->_get_options().
 
 
 
-<h4>'.__( 'Theme Customisation', 'commentpress-core' ).'</h4>
+<hr />
+
+<h3>'.__( 'Theme Customisation', 'commentpress-core' ).'</h3>
 
 <p>'.__( 'You can set a custom background colour in <em>Appearance &#8594; Background</em>.<br />
 You can also set a custom header image and header text colour in <em>Appearance &#8594; Header</em>.<br />
@@ -1952,6 +1962,31 @@ Below are extra options for changing how the theme looks.', 'commentpress-core' 
 		$upgrade = '';
 		
 		
+		
+		// do we have the option to choose to hide textblock meta (new in 3.5.9)?
+		if ( !$this->db->option_exists( 'cp_textblock_meta' ) ) {
+		
+			// define labels
+			$label = __( 'Show paragraph meta (Number and Comment Icon)', 'commentpress-core' );
+			$yes_label = __( 'Always', 'commentpress-core' );
+			$no_label = __( 'On rollover', 'commentpress-core' );
+	
+			// define upgrade
+			$upgrade .= '
+	<tr valign="top">
+		<th scope="row"><label for="cp_textblock_meta">'.$label.'</label></th>
+		<td><select id="cp_textblock_meta" name="cp_textblock_meta">
+				<option value="y" selected="selected">'.$yes_label.'</option>
+				<option value="n">'.$no_label.'</option>
+			</select>
+		</td>
+	</tr>
+
+';
+
+		}
+		
+
 		
 		// do we have the option to choose featured images (new in 3.5.4)?
 		if ( !$this->db->option_exists( 'cp_featured_images' ) ) {
@@ -2539,6 +2574,39 @@ Below are extra options for changing how the theme looks.', 'commentpress-core' 
 
 
 	/** 
+	 * @description: returns the textblock meta button for the admin form
+	 * @return string $reset
+	 * @todo: 
+	 *
+	 */
+	function _get_textblock_meta() {
+	
+		// define override
+		$override = '
+	<tr valign="top">
+		<th scope="row"><label for="cp_textblock_meta">'.__( 'Show paragraph meta (Number and Comment Icon)', 'commentpress-core' ).'</label></th>
+		<td><select id="cp_textblock_meta" name="cp_textblock_meta">
+				<option value="y" '.(($this->db->option_get('cp_textblock_meta', 'y') == 'y') ? ' selected="selected"' : '').'>'.__( 'Always', 'commentpress-core' ).'</option>
+				<option value="n" '.(($this->db->option_get('cp_textblock_meta', 'y') == 'n') ? ' selected="selected"' : '').'>'.__( 'On rollover', 'commentpress-core' ).'</option>
+			</select>
+		</td>
+	</tr>
+
+';		
+		
+		// --<
+		return $override;
+		
+	}
+	
+	
+	
+	
+	
+
+
+
+	/** 
 	 * @description: returns the submit button
 	 * @return string $editor
 	 * @todo: 
@@ -2651,9 +2719,12 @@ Below are extra options for changing how the theme looks.', 'commentpress-core' 
 					jQuery(this).fadeOut(2);
 			});
 		});
-
-		farbtastic = jQuery.farbtastic("#color-picker", function(color) { pickColor(color); });
-		pickColor("#'.$this->db->option_get_header_bg().'");
+		
+		// test for picker
+		if ( jQuery("#cp_header_bg_colour").length > 0 ) {
+			farbtastic = jQuery.farbtastic("#color-picker", function(color) { pickColor(color); });
+			pickColor("#'.$this->db->option_get_header_bg().'");
+		}
 
 		'.( ( 'blank' == $this->db->option_get_header_bg() OR '' == $this->db->option_get_header_bg() ) ? 'toggle_text();' : '' ).'
 		});
