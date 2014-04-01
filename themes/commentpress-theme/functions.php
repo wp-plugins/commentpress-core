@@ -321,7 +321,8 @@ function commentpress_enqueue_scripts_and_styles() {
 		
 			'cp_common_js', 
 			get_template_directory_uri() . '/assets/js/cp_js_common'.$dev.'.js', 
-			array( 'jquery_commentpress' )
+			array( 'jquery_commentpress' ),
+			COMMENTPRESS_VERSION // version
 		
 		);
 		
@@ -337,7 +338,8 @@ function commentpress_enqueue_scripts_and_styles() {
 			
 				'cp_form', 
 				get_template_directory_uri() . '/assets/js/cp_js_form'.$dev.'.js', 
-				array( 'cp_common_js' )
+				array( 'cp_common_js' ),
+				COMMENTPRESS_VERSION // version
 			
 			);
 				
@@ -351,7 +353,8 @@ function commentpress_enqueue_scripts_and_styles() {
 			
 				'cp_special', 
 				get_template_directory_uri() . '/assets/js/cp_js_all_comments.js', 
-				array( 'cp_form' )
+				array( 'cp_form' ),
+				COMMENTPRESS_VERSION // version
 			
 			);
 				
@@ -1106,8 +1109,24 @@ function commentpress_get_body_classes(
 	
 
 
+	// init TinyMCE class
+	$tinymce_version = ' tinymce-3';
+	
+	// access WP version
+	global $wp_version;
+
+	// if greater than 3.8
+	if ( version_compare( $wp_version, '3.8.9999', '>' ) ) {
+	
+		// override TinyMCE class
+		$tinymce_version = ' tinymce-4';
+		
+	}
+	
+	
+	
 	// construct attribute
-	$_body_classes = $sidebar_class.$commentable.$layout_class.$page_type.$groupblog_type.$blog_type;
+	$_body_classes = $sidebar_class.$commentable.$layout_class.$page_type.$groupblog_type.$blog_type.$tinymce_version;
 
 	// if we want them wrapped, do so
 	if ( !$raw ) {
@@ -1781,9 +1800,7 @@ endif; // commentpress_echo_post_author
 
 if ( ! function_exists( 'commentpress_format_comment' ) ):
 /** 
- * @description: format comment on comments pages
- * @todo: 
- *
+ * @description: format comment on custom CommentPress comments pages
  */
 function commentpress_format_comment( $comment, $context = 'all' ) {
 
@@ -2155,11 +2172,19 @@ function commentpress_get_all_comments_page_content() {
 	// get title
 	$title = ( $page_or_post == 'page' ) ? $booktitle : $blogtitle;
 	
-	// set title
-	$_page_content .= '<p class="comments_hl">'.$title.'</p>'."\n\n";
-	
 	// get data
-	$_page_content .= commentpress_get_all_comments_content( $page_or_post );
+	$_data = commentpress_get_all_comments_content( $page_or_post );
+	
+	// did we get any?
+	if ( $_data != '' ) {
+	
+		// set title
+		$_page_content .= '<p class="comments_hl">'.$title.'</p>'."\n\n";
+	
+		// set data
+		$_page_content .= $_data."\n\n";
+		
+	}
 	
 	
 	
@@ -2169,11 +2194,19 @@ function commentpress_get_all_comments_page_content() {
 	// get title
 	$title = ( $page_or_post == 'page' ) ? $blogtitle : $booktitle;
 	
-	// set title
-	$_page_content .= '<p class="comments_hl">'.$title.'</p>'."\n\n";
-	
 	// get data
-	$_page_content .= commentpress_get_all_comments_content( $other_type );
+	$_data = commentpress_get_all_comments_content( $other_type );
+	
+	// did we get any?
+	if ( $_data != '' ) {
+	
+		// set title
+		$_page_content .= '<p class="comments_hl">'.$title.'</p>'."\n\n";
+		
+		// set data
+		$_page_content .= $_data."\n\n";
+		
+	}
 	
 	
 	
@@ -3981,15 +4014,47 @@ function commentpress_add_wp_editor() {
 	// allow media buttons setting to be overridden
 	$media_buttons = apply_filters( 'commentpress_rte_media_buttons', true );
 
-	// allow tinymce config to be overridden
-	$tinymce_config = apply_filters( 
-		'commentpress_rte_tinymce', 
-		array(
-			'theme' => 'advanced',
-			'theme_advanced_buttons1' => implode( ',', $mce_buttons ),
-			'theme_advanced_statusbar_location' => 'none',
-		)
-	);
+	// access WP version
+	global $wp_version;
+
+	// if greater than 3.8
+	if ( version_compare( $wp_version, '3.8.9999', '>' ) ) {
+	
+		// TinyMCE 4 - allow tinymce config to be overridden
+		$tinymce_config = apply_filters( 
+			'commentpress_rte_tinymce', 
+			array(
+				'theme' => 'modern',
+				'statusbar' => false,
+			)
+		);
+		
+		// no need for editor css
+		$editor_css = '';
+	
+	} else {
+	
+		// TinyMCE 3 - allow tinymce config to be overridden
+		$tinymce_config = apply_filters( 
+			'commentpress_rte_tinymce', 
+			array(
+				'theme' => 'advanced',
+				'theme_advanced_buttons1' => implode( ',', $mce_buttons ),
+				'theme_advanced_statusbar_location' => 'none',
+			)
+		);
+		
+		// use legacy editor css
+		$editor_css = '
+			<style type="text/css">
+				.wp_themeSkin iframe
+				{
+					background: #fff;
+				}
+			</style>
+		';
+	
+	}
 	
 	// allow quicktags setting to be overridden
 	$quicktags = apply_filters( 
@@ -4011,18 +4076,7 @@ function commentpress_add_wp_editor() {
 		'teeny' => true,
 		
 		// give the iframe a white background
-		'editor_css' => '
-			<style type="text/css">
-				/* <![CDATA[ */
-				
-				.wp_themeSkin iframe
-				{
-					background: #fff;
-				}
-				
-				/* ]]> */
-			</style>
-		',
+		'editor_css' => $editor_css,
 		
 		// configure TinyMCE
 		'tinymce' => $tinymce_config,
@@ -4142,6 +4196,44 @@ function commentpress_add_tinymce_nextpage_button( $buttons ) {
 
 // add filter for the above
 add_filter( 'mce_buttons', 'commentpress_add_tinymce_nextpage_button' );
+
+
+
+
+
+
+/**
+ * @description; assign our buttons to TinyMCE in teeny mode
+ * @param array $buttons The default editor buttons as set by WordPress
+ * @return string 'tinymce' our overridden default editor
+ */
+function commentpress_assign_editor_buttons( $buttons ) {
+
+	// basic buttons
+	return array(
+		'bold', 
+		'italic', 
+		'underline', 
+		'|',
+		'bullist',
+		'numlist',
+		'|',
+		'link', 
+		'unlink', 
+		'|', 
+		'removeformat',
+		'fullscreen'
+	);
+
+}
+
+// access WP version
+global $wp_version;
+
+// if greater than 3.8
+if ( version_compare( $wp_version, '3.8.9999', '>' ) ) {
+	add_filter( 'teeny_mce_buttons', 'commentpress_assign_editor_buttons' );
+}
 
 
 
@@ -4326,15 +4418,15 @@ if ( ! function_exists( 'commentpress_add_commentblock_button' ) ):
 function commentpress_add_commentblock_button() {
 
 	// only on back-end
-	if ( !is_admin() ) { return; }
+	if ( ! is_admin() ) { return; }
 	
 	// don't bother doing this stuff if the current user lacks permissions
-	if ( ! current_user_can('edit_posts') AND ! current_user_can('edit_pages') ) {
+	if ( ! current_user_can( 'edit_posts' ) AND ! current_user_can( 'edit_pages' ) ) {
 		return;
 	}
 	
 	// add only if user can edit in Rich-text Editor mode
-	if ( get_user_option('rich_editing') == 'true') {
+	if ( get_user_option( 'rich_editing' ) == 'true' ) {
 	
 		add_filter( 'mce_external_plugins', 'commentpress_add_commentblock_tinymce_plugin' );
 		add_filter( 'mce_buttons', 'commentpress_register_commentblock_button' );

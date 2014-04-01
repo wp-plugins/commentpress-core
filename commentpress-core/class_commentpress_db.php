@@ -96,6 +96,9 @@ class CommentpressCoreDatabase {
 	// featured images off by default
 	public $featured_images = 'n';
 	
+	// show textblock meta by default
+	public $textblock_meta = 'y';
+	
 
 
 
@@ -275,6 +278,19 @@ class CommentpressCoreDatabase {
 			
 			// get variables
 			extract( $_POST );
+			
+			
+			
+			// New in CP 3.5.9 - textblock meta can be hidden
+			if ( !$this->option_exists( 'cp_textblock_meta' ) ) {
+	
+				// get choice
+				$_choice = esc_sql( $cp_textblock_meta );
+			
+				// add chosen featured images option
+				$this->option_set( 'cp_textblock_meta', $_choice );
+				
+			}
 			
 			
 			
@@ -735,9 +751,14 @@ class CommentpressCoreDatabase {
 		
 		// if we have a commentpress install and it's lower than this one
 		if ( $_version !== false AND version_compare( COMMENTPRESS_VERSION, $_version, '>' ) ) {
-		
-			// override
-			$result = true;
+			
+			// check whether any options need to be shown
+			if ( $this->check_upgrade_options() ) {
+			
+				// override
+				$result = true;
+			
+			}
 
 		}
 		
@@ -745,6 +766,66 @@ class CommentpressCoreDatabase {
 
 		// --<
 		return $result;
+
+	}
+	
+	
+	
+	
+	
+
+
+	/** 
+	 * @description: check for options added in this plugin upgrade
+	 * @return boolean $result
+	 * @todo: 
+	 *
+	 */
+	function check_upgrade_options() {
+	
+		// do we have the option to choose to hide textblock meta (new in 3.5.9)?
+		if ( !$this->option_exists( 'cp_textblock_meta' ) ) { return true; }
+		
+		// do we have the option to choose featured images (new in 3.5.4)?
+		if ( !$this->option_exists( 'cp_featured_images' ) ) { return true; }
+		
+		// do we have the option to choose the default sidebar (new in 3.3.3)?
+		if ( !$this->option_exists( 'cp_sidebar_default' ) ) { return true; }
+		
+		// do we have the option to show or hide page meta (new in 3.3.2)?
+		if ( !$this->option_exists( 'cp_page_meta_visibility' ) ) { return true; }
+		
+		// do we have the option to choose blog type (new in 3.3.1)?
+		if ( !$this->option_exists( 'cp_blog_type' ) ) { return true; }
+		
+		// do we have the option to choose blog workflow (new in 3.3.1)?
+		if ( !$this->option_exists( 'cp_blog_workflow' ) ) { return true; }
+		
+		// do we have the option to choose the TOC layout (new in 3.3)?
+		if ( !$this->option_exists( 'cp_show_extended_toc' ) ) { return true; }
+		
+		// do we have the option to set the comment editor?
+		if ( !$this->option_exists( 'cp_comment_editor' ) ) { return true; }
+		
+		// do we have the option to set the default behaviour?
+		if ( !$this->option_exists( 'cp_promote_reading' ) ) { return true; }
+		
+		// do we have the option to show or hide titles?
+		if ( !$this->option_exists( 'cp_title_visibility' ) ) { return true; }
+		
+		// do we have the option to set the header bg colour?
+		if ( !$this->option_exists( 'cp_header_bg_colour' ) ) { return true; }
+		
+		// do we have the option to set the scroll speed?
+		if ( !$this->option_exists( 'cp_js_scroll_speed' ) ) { return true; }
+		
+		// do we have the option to set the minimum page width?
+		if ( !$this->option_exists( 'cp_min_page_width' ) ) { return true; }
+		
+
+
+		// --<
+		return false;
 
 	}
 	
@@ -790,6 +871,7 @@ class CommentpressCoreDatabase {
 			$cp_blog_workflow = 0;
 			$cp_sidebar_default = 'comments';
 			$cp_featured_images = 'n';
+			$cp_textblock_meta = 'y';
 			
 			
 			
@@ -988,6 +1070,10 @@ class CommentpressCoreDatabase {
 			// save featured images
 			$cp_featured_images = esc_sql( $cp_featured_images );
 			$this->option_set( 'cp_featured_images', $cp_featured_images );
+			
+			// save textblock meta
+			$cp_textblock_meta = esc_sql( $cp_textblock_meta );
+			$this->option_set( 'cp_textblock_meta', $cp_textblock_meta );
 			
 
 
@@ -1649,6 +1735,78 @@ class CommentpressCoreDatabase {
 				add_post_meta( $post->ID, $key, esc_sql( $_data ) );
 			
 			}
+			
+		}
+		
+
+
+		// ---------------------------------------------------------------------
+		// Workflow
+		// ---------------------------------------------------------------------
+		
+		// do we have the option to set workflow (new in 3.3.1)?
+		if ( $this->option_exists( 'cp_blog_workflow' ) ) {
+		
+			// get workflow setting for the blog
+			$_workflow = $this->option_get( 'cp_blog_workflow' );
+			
+			/*
+			// ----------------
+			// WORK IN PROGRESS
+			
+			// set key
+			$key = '_cp_blog_workflow_override';
+			
+			// if the custom field already has a value...
+			if ( get_post_meta( $post->ID, $key, true ) !== '' ) {
+			
+				// get existing value
+				$_workflow = get_post_meta( $post->ID, $key, true );
+				
+			}
+			// ----------------
+			*/
+			
+			// if it's enabled...
+			if ( $_workflow == '1' ) {
+			
+				// notify plugins that workflow stuff needs saving
+				do_action( 'cp_workflow_save_page', $post );
+			
+			}
+			
+			/*
+			// ----------------
+			// WORK IN PROGRESS
+			
+			// get the setting for the post (we do this after saving the extra
+			// post data because 
+			$_formatter = ( isset( $_POST['cp_post_type_override'] ) ) ? $_POST['cp_post_type_override'] : '';
+	
+			// if the custom field already has a value...
+			if ( get_post_meta( $post->ID, $key, true ) !== '' ) {
+			
+				// if empty string...
+				if ( $_data === '' ) {
+			
+					// delete the meta_key
+					delete_post_meta( $post->ID, $key );
+				
+				} else {
+				
+					// update the data
+					update_post_meta( $post->ID, $key, esc_sql( $_data ) );
+					
+				}
+				
+			} else {
+			
+				// add the data
+				add_post_meta( $post->ID, $key, esc_sql( $_data ) );
+				
+			}
+			// ----------------
+			*/
 			
 		}
 		
@@ -3013,6 +3171,22 @@ class CommentpressCoreDatabase {
 		
 
 
+		// add TinyMCE version var
+		$vars['cp_tinymce_version'] = 3;
+
+		// access WP version
+		global $wp_version;
+	
+		// if greater than 3.8
+		if ( version_compare( $wp_version, '3.8.9999', '>' ) ) {
+		
+			// add newer TinyMCE version 
+			$vars['cp_tinymce_version'] = 4;
+
+		}
+		
+		
+		
 		// add rich text editor behaviour
 		$vars['cp_promote_reading'] = 1;
 		
@@ -3087,6 +3261,22 @@ class CommentpressCoreDatabase {
 		
 			// set flag
 			$vars['cp_is_signup_page'] = '1';
+			
+		}
+		
+		// default to showing textblock meta
+		$vars['cp_textblock_meta'] = 1;
+		
+		// check option
+		if ( 
+		
+			$this->option_exists( 'cp_textblock_meta' ) AND
+			$this->option_get( 'cp_textblock_meta' ) == 'n'
+			
+		) {
+		
+			// only show textblock meta on rollover
+			$vars['cp_textblock_meta'] = 0;
 			
 		}
 		
@@ -3912,6 +4102,7 @@ You can also set a number of options in <em>Wordpress</em> &#8594; <em>Settings<
 			'cp_blog_workflow' => $this->blog_workflow,
 			'cp_sidebar_default' => $this->sidebar_default,
 			'cp_featured_images' => $this->featured_images,
+			'cp_textblock_meta' => $this->textblock_meta,
 		
 		);
 
@@ -3983,6 +4174,9 @@ You can also set a number of options in <em>Wordpress</em> &#8594; <em>Settings<
 		
 		// featured images
 		$this->option_set( 'cp_featured_images', $this->featured_images );
+		
+		// textblock meta
+		$this->option_set( 'cp_textblock_meta', $this->textblock_meta );
 		
 		// store it
 		$this->options_save();
@@ -4084,6 +4278,10 @@ You can also set a number of options in <em>Wordpress</em> &#8594; <em>Settings<
 										$old[ 'cp_featured_images' ] :
 										$this->featured_images;
 		
+		$this->textblock_meta =		 	isset( $old[ 'cp_textblock_meta' ] ) ?
+										$old[ 'cp_textblock_meta' ] :
+										$this->textblock_meta;
+		
 
 
 		// ---------------------------------------------------------------------
@@ -4140,6 +4338,7 @@ You can also set a number of options in <em>Wordpress</em> &#8594; <em>Settings<
 			'cp_blog_workflow' => $blog_workflow,
 			'cp_sidebar_default' => $this->sidebar_default,
 			'cp_featured_images' => $this->featured_images,
+			'cp_textblock_meta' => $this->textblock_meta,
 			
 		);
 			
