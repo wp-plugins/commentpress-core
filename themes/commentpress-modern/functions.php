@@ -226,14 +226,20 @@ function commentpress_bp_enqueue_scripts() {
 
 	/*
 	----------------------------------------------------------------------------
+	Some notes on BuddyPress 2+ theme compatibility
+	----------------------------------------------------------------------------
+	
+	Theme compatibility needs revisiting, because the default theme is being
+	removed from BuddyPress core. 
+	
+	All theme markup needs to be adjusted to be compatible with the code in 
+	`buddypress/bp-templates` instead
+	
+	----------------------------------------------------------------------------
 	Some notes on BuddyPress 1.7 theme compatibility
 	----------------------------------------------------------------------------
 
-	(a) see commentpress_enqueue_scripts_and_styles() for dequeuing bp-legacy-css
-	
-	(b) CommentPress Core and themes based on it require the inclusion and setup
-	    of the BuddyPress Template Pack plugin, which should have only Javascript
-	    enabled for the main BuddyPress site
+	@see commentpress_enqueue_scripts_and_styles() for dequeuing bp-legacy-css
 	
 	----------------------------------------------------------------------------
 	*/
@@ -241,36 +247,61 @@ function commentpress_bp_enqueue_scripts() {
 	// kick out on admin
 	if ( is_admin() ) { return; }
 
-	// enqueue buddypress js
-	wp_enqueue_script( 
-	
-		'cp_buddypress_js', 
-		//BP_PLUGIN_URL . '/bp-templates/bp-legacy/js/buddypress.js',
-		BP_PLUGIN_URL . '/bp-themes/bp-default/_inc/global.js',
-		array( 'jquery' ),
-		COMMENTPRESS_VERSION // version
+	// access plugin
+	global $commentpress_core;
 
-	);
+	// if we have the plugin enabled...
+	if ( is_object( $commentpress_core ) ) {
+		
+		// test for buddypress special page
+		if ( $commentpress_core->is_buddypress() AND $commentpress_core->is_buddypress_special_page() ) {
+			
+			// construct path to BP default javascript file
+			// Eventually use:
+			// $bp_js_file = BP_PLUGIN_URL . 'bp-templates/bp-legacy/js/buddypress.js',
+			$bp_js_file = BP_PLUGIN_URL . 'bp-themes/bp-default/_inc/global.js';
 	
-	// add translation: this needs to be checked against BP_Legacy::enqueue_scripts
-	// from time to time to make sure it's up-to-date
-	$params = array(
-		'my_favs'           => __( 'My Favorites', 'commentpress-core' ),
-		'accepted'          => __( 'Accepted', 'commentpress-core' ),
-		'rejected'          => __( 'Rejected', 'commentpress-core' ),
-		'show_all_comments' => __( 'Show all comments for this thread', 'commentpress-core' ),
-		'show_x_comments'   => __( 'Show all %d comments', 'commentpress-core' ),
-		'show_all'          => __( 'Show all', 'commentpress-core' ),
-		'comments'          => __( 'comments', 'commentpress-core' ),
-		'close'             => __( 'Close', 'commentpress-core' ),
-		'view'              => __( 'View', 'commentpress-core' ),
-		'mark_as_fav'	    => __( 'Favorite', 'commentpress-core' ),
-		'remove_fav'	    => __( 'Remove Favorite', 'commentpress-core' ),
-		'unsaved_changes'   => __( 'Your profile has unsaved changes. If you leave the page, the changes will be lost.', 'commentpress-core' ),
-	);
+			// look for BP AJAX file in default theme directory
+			if ( !is_file( $bp_js_file ) ) {
+		
+				// temporarily use our copy
+				$bp_js_file = COMMENTPRESS_PLUGIN_URL . 'commentpress-core/assets/includes/bp-compat/global.js';
+		
+			}
 	
-	// localise
-	wp_localize_script( 'cp_buddypress_js', 'BP_DTheme', $params );
+			// enqueue buddypress js
+			wp_enqueue_script( 
+	
+				'cp_buddypress_js', 
+				$bp_js_file,
+				array( 'jquery' ),
+				COMMENTPRESS_VERSION // version
+
+			);
+	
+			// add translation: this needs to be checked against BP_Legacy::enqueue_scripts
+			// from time to time to make sure it's up-to-date
+			$params = array(
+				'my_favs'           => __( 'My Favorites', 'commentpress-core' ),
+				'accepted'          => __( 'Accepted', 'commentpress-core' ),
+				'rejected'          => __( 'Rejected', 'commentpress-core' ),
+				'show_all_comments' => __( 'Show all comments for this thread', 'commentpress-core' ),
+				'show_x_comments'   => __( 'Show all %d comments', 'commentpress-core' ),
+				'show_all'          => __( 'Show all', 'commentpress-core' ),
+				'comments'          => __( 'comments', 'commentpress-core' ),
+				'close'             => __( 'Close', 'commentpress-core' ),
+				'view'              => __( 'View', 'commentpress-core' ),
+				'mark_as_fav'	    => __( 'Favorite', 'commentpress-core' ),
+				'remove_fav'	    => __( 'Remove Favorite', 'commentpress-core' ),
+				'unsaved_changes'   => __( 'Your profile has unsaved changes. If you leave the page, the changes will be lost.', 'commentpress-core' ),
+			);
+	
+			// localise
+			wp_localize_script( 'cp_buddypress_js', 'BP_DTheme', $params );
+	
+		}
+	
+	}
 
 }
 endif; // commentpress_bp_enqueue_scripts
@@ -312,10 +343,26 @@ function commentpress_bp_theme_compatibility() {
  *
  */
 function commentpress_bp_theme_support() {
-
+	
 	// load the default BuddyPress AJAX functions if it isn't already included
 	if ( ! function_exists( 'bp_dtheme_register_actions' ) ) {
-		require_once( BP_PLUGIN_DIR . '/bp-themes/bp-default/_inc/ajax.php' );
+
+		// construct path to BP default theme AJAX file
+		$ajax_file = BP_PLUGIN_DIR . 'bp-themes/bp-default/_inc/ajax.php';
+		
+		// look for BP AJAX file in default theme directory
+		if ( is_file( $ajax_file ) ) {
+			
+			// okay, we found it
+			require_once( $ajax_file );
+			
+		} else {
+			
+			// temporarily use our copy
+			require_once( COMMENTPRESS_PLUGIN_PATH . 'commentpress-core/assets/includes/bp-compat/ajax.php' );
+			
+		}
+		
 	}
 	
 	// call after_setup_theme function directly otherwise it doesn't run: this is 
@@ -626,7 +673,7 @@ function commentpress_background(
 	// bail if we don't have one
 	if ( ! $color ) return;
 
-	$style = $color ? "background-color: #$color; !important" : '';
+	$style = $color ? "background-color: #$color !important;" : '';
 
 	echo '
 <style type="text/css" id="custom-background-css">
@@ -947,7 +994,7 @@ function commentpress_admin_menu() {
 	if ( version_compare( $wp_version, '3.4', '>=' ) ) {
 
 		// add the Customize link to the admin menu
-		add_theme_page( 'Customize', 'Customize', 'edit_theme_options', 'customize.php' );
+		add_theme_page( __( 'Customize', 'commentpress-core' ), __( 'Customize', 'commentpress-core' ), 'edit_theme_options', 'customize.php' );
 		
 	}
 	
@@ -1014,6 +1061,12 @@ function commentpress_get_header_image(
 	// access plugin
 	global $commentpress_core;
 
+
+
+	// -------------------------------------------------------------------------
+	// if this is a groupblog, always show group avatar
+	// -------------------------------------------------------------------------
+
 	// test for groupblog
 	if ( is_object( $commentpress_core ) AND $commentpress_core->is_groupblog() ) {
 	
@@ -1025,7 +1078,7 @@ function commentpress_get_header_image(
 			'item_id' => $group_id, 
 			'object' => 'group', 
 			'type' => 'full', 
-			'alt' => 'Group avatar', 
+			'alt' => __( 'Group avatar', 'commentpress-core' ), 
 			'class' => 'cp_logo_image cp_group_avatar', 
 			'width' => 48, 
 			'height' => 48, 
@@ -1050,6 +1103,26 @@ function commentpress_get_header_image(
 	
 	
 	
+	// -------------------------------------------------------------------------
+	// allow plugins to hook in before Theme Customizer
+	// -------------------------------------------------------------------------
+
+	// allow plugins to hook in
+	$custom_avatar_pre = apply_filters( 'commentpress_header_image_pre_customizer', false );
+	
+	// did we get one?
+	if ( $custom_avatar_pre !== false ) {
+	
+		// show it
+		echo $custom_avatar_pre;
+	
+		// bail before fallback
+		return;
+
+	}
+	
+	
+		
 	// -------------------------------------------------------------------------
 	// implement compatibility with WordPress Theme Customizer
 	// -------------------------------------------------------------------------
@@ -1085,6 +1158,26 @@ function commentpress_get_header_image(
 	
 	
 	
+	// -------------------------------------------------------------------------
+	// allow plugins to hook in after Theme Customizer
+	// -------------------------------------------------------------------------
+
+	// allow plugins to hook in
+	$custom_avatar_post = apply_filters( 'commentpress_header_image_post_customizer', false );
+	
+	// did we get one?
+	if ( $custom_avatar_post !== false ) {
+	
+		// show it
+		echo $custom_avatar_post;
+	
+		// bail before fallback
+		return;
+
+	}
+	
+	
+		
 	// -------------------------------------------------------------------------
 	// our fallback is to go with the legacy method that some people might still be using
 	// -------------------------------------------------------------------------
@@ -1506,7 +1599,7 @@ function commentpress_page_navigation( $with_comments = false ) {
 		// define list item 
 		$next_page_html = $before_next.
 						  $img.
-						  '<a href="'.get_permalink( $next_page->ID ).'" class="next_page" title="'.$title.'">'.$title.'</a>'.
+						  '<a href="'.get_permalink( $next_page->ID ).'" class="next_page" title="'.esc_attr( $title ).'">'.$title.'</a>'.
 						  $after_next;
 		
 	}
@@ -1538,7 +1631,7 @@ function commentpress_page_navigation( $with_comments = false ) {
 		// define list item 
 		$prev_page_html = $before_prev.
 						  $img.
-						  '<a href="'.get_permalink( $prev_page->ID ).'" class="previous_page" title="'.$title.'">'.$title.'</a>'.
+						  '<a href="'.get_permalink( $prev_page->ID ).'" class="previous_page" title="'.esc_attr( $title ).'">'.$title.'</a>'.
 						  $after_prev;
 		
 	}
@@ -1905,7 +1998,7 @@ function commentpress_echo_post_meta() {
 			
 			?><cite class="fn"><?php echo $author_html; ?></cite>
 			
-			<p><a href="<?php the_permalink() ?>"><?php the_time('l, F jS, Y') ?></a></p>
+			<p><a href="<?php the_permalink() ?>"><?php echo esc_html( get_the_date( __( 'l, F jS, Y', 'commentpress-core' ) ) ); ?></a></p>
 			
 			<?php
 				
@@ -1921,7 +2014,7 @@ function commentpress_echo_post_meta() {
 		
 		<cite class="fn"><?php commentpress_echo_post_author( $author_id ) ?></cite>
 		
-		<p><a href="<?php the_permalink() ?>"><?php the_time('l, F jS, Y') ?></a></p>
+		<p><a href="<?php the_permalink() ?>"><?php echo esc_html( get_the_date( __( 'l, F jS, Y', 'commentpress-core' ) ) ); ?></a></p>
 		
 		<?php 
 	
@@ -2050,7 +2143,7 @@ function commentpress_format_comment( $comment, $context = 'all' ) {
 	$_comment_anchor = '<a href="'.$_comment_link.'" title="'.esc_attr( __( 'See comment in context', 'commentpress-core' ) ).'">'.__( 'Comment', 'commentpress-core' ).'</a>';
 	
 	// construct date
-	$_comment_date = date( 'F jS, Y', strtotime( $comment->comment_date ) );
+	$_comment_date = date( __( 'F jS, Y', 'commentpress-core' ), strtotime( $comment->comment_date ) );
 	
 	
 	
@@ -2281,7 +2374,7 @@ function commentpress_get_all_comments_content( $page_or_post = 'page' ) {
 		
 		// show it
 		$html .= '<h4>'.esc_html( $_post->post_title ).' <span>('.$comment_count_text.')</span></h4>'."\n\n";
-
+		
 		// open comments div
 		$html .= '<div class="item_body">'."\n\n";
 		
@@ -2291,32 +2384,45 @@ function commentpress_get_all_comments_content( $page_or_post = 'page' ) {
 		// open li
 		$html .= '<li class="item_li"><!-- item li -->'."\n\n";
 		
-		foreach( $all_comments AS $comment ) {
+		// check for password-protected
+		if ( post_password_required( $_post->ID ) ) {
+			
+			// construct notice
+			$_comment_body = '<div class="comment-content">'.__( 'Password protected', 'commentpress-core' ).'</div>'."\n";
+	
+			// add notice
+			$html .= '<div class="comment_wrapper">'."\n".$_comment_body.'</div>'."\n\n";
+			
+		} else {
 		
-			if ( $comment->comment_post_ID == $_post->ID ) {
+			foreach( $all_comments AS $comment ) {
 		
-				// show the comment
-				$html .= commentpress_format_comment( $comment );
+				if ( $comment->comment_post_ID == $_post->ID ) {
+		
+					// show the comment
+					$html .= commentpress_format_comment( $comment );
 				
-				/*
-				// get comment children
-				$children = commentpress_get_children( $comment, $page_or_post );
+					/*
+					// get comment children
+					$children = commentpress_get_children( $comment, $page_or_post );
 		
-				// do we have any?
-				if( count( $children ) > 0 ) {
+					// do we have any?
+					if( count( $children ) > 0 ) {
 
-					// recurse
-					commentpress_get_comments( $children, $page_or_post );
+						// recurse
+						commentpress_get_comments( $children, $page_or_post );
 			
-					// show them
-					$html .= $cp_comment_output;
+						// show them
+						$html .= $cp_comment_output;
 			
-					// clear global comment output
-					$cp_comment_output = '';
+						// clear global comment output
+						$cp_comment_output = '';
+			
+					}
+					*/
 			
 				}
-				*/
-			
+		
 			}
 		
 		}
@@ -2759,8 +2865,11 @@ function commentpress_get_comment_activity( $scope = 'all' ) {
 		
 		// loop
 		foreach ($_data as $comment) {
-		
-			$_page_content .= commentpress_get_comment_activity_item( $comment );
+			
+			// exclude comments from password-protected posts
+			if ( ! post_password_required( $comment->comment_post_ID ) ) {
+				$_page_content .= commentpress_get_comment_activity_item( $comment );
+			}
 		
 		}
 	
@@ -2925,7 +3034,7 @@ function commentpress_get_comment_activity_item( $comment ) {
 <div class="comment-identifier">
 '.get_avatar( $comment, $size='32' ).'
 '.$author.'		
-<p class="comment_activity_date"><a class="comment_activity_link'.$is_on_current_post.'" href="'.htmlspecialchars( get_comment_link() ).'">'.get_comment_date().' at '.get_comment_time().'</a></p>
+<p class="comment_activity_date"><a class="comment_activity_link'.$is_on_current_post.'" href="'.htmlspecialchars( get_comment_link() ).'">'. sprintf( __( '%1$s at %2$s', 'commentpress-core' ), get_comment_date(), get_comment_time() ).'</a></p>
 </div><!-- /comment-identifier -->
 
 
@@ -3340,7 +3449,8 @@ function commentpress_get_comments_by_para() {
 							// construct href attribute
 							$href = apply_filters( 
 								'commentpress_reply_to_para_link_href',
-								$query.'#respond' // add respond ID
+								$query.'#respond', // add respond ID
+								$text_sig
 							);
 						
 							// construct link content
@@ -5286,6 +5396,27 @@ function commentpress_has_feature_image() {
 	
 }
 
+
+
+
+
+/** 
+ * @description: temporary fix for WP 3.9
+ */
+function commentpress_sidebars_widgets( $array ) {
+	
+	// prevent errors in Theme Customizer
+	if ( !is_array( $array ) ) {
+		$array = array();
+	}
+	
+	// --<
+	return $array;
+
+}
+
+// add filter for above
+add_filter( 'sidebars_widgets', 'commentpress_sidebars_widgets', 1000 );
 
 
 
